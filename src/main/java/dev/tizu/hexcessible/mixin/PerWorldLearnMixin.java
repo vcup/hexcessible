@@ -22,12 +22,12 @@ public class PerWorldLearnMixin {
 	private void init(CallbackInfo info) {
 		Hexcessible.LOGGER.debug("PerWorldLearnMixin.init");
 		var stack = MinecraftClient.getInstance().player.getOffHandStack();
-		var scrollInOffhand = stack.isOf(HexItems.SCROLL_LARGE);
+		var scrollInOffhand = stack.isOf(HexItems.SCROLL_LARGE.get());
 		if (!scrollInOffhand) return;
 
-		var scrollData = stack.get(HexDataComponents.PATTERN);
+		var scrollData = stack.get(HexDataComponents.PATTERN.get());
 		if (scrollData == null) return;
-		var scrollAction = stack.get(HexDataComponents.ACTION);
+		var scrollAction = stack.get(HexDataComponents.ACTION.get());
 		if (scrollAction == null) return;
 
 		var angles = new ArrayList<HexAngle>();
