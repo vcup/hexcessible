@@ -7,6 +7,7 @@ import java.util.Map;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
+import at.petrak.hexcasting.api.casting.math.HexDir;
 import at.petrak.hexcasting.api.casting.math.HexPattern;
 import dev.tizu.hexcessible.Hexcessible;
 import dev.tizu.hexcessible.Utils;
@@ -33,9 +34,12 @@ public final class Idling extends DrawState {
 
     @Override
     public void onCharType(char chr) {
-        if (Hexcessible.cfg().keyboardDraw.allow
-                && KeyboardDrawing.validSig.contains(chr))
+        if (!Hexcessible.cfg().keyboardDraw.allow)
+            return;
+        if (Hexcessible.cfg().keyboardDraw.relative && KeyboardDrawing.validSig.contains(chr))
             nextState = new KeyboardDrawing(castref, List.of(Utils.angle(chr)));
+        else if (!Hexcessible.cfg().keyboardDraw.relative && KeyboardDrawing.validAbsSig.contains(chr) && chr != 'a')
+            nextState = new KeyboardDrawing(castref, List.of(Utils.angle(chr, HexDir.EAST)));
     }
 
     @Override
@@ -86,9 +90,10 @@ public final class Idling extends DrawState {
         var keys = new HashMap<String, String>();
 
         if (Hexcessible.cfg().keyboardDraw.allow) {
-            var kbdChars = String.join("/", KeyboardDrawing.validSig
-                    .subList(0, KeyboardDrawing.validSig.size() / 2).stream()
-                    .map(Object::toString).toList());
+	        var all = Hexcessible.cfg().keyboardDraw.relative
+	                ? KeyboardDrawing.validSig : KeyboardDrawing.validAbsSig;
+	        var kbdChars = String.join("/", all.subList(0, all.size() / 2)
+	                .stream().map(Object::toString).toList());
             keys.put("lmb/" + kbdChars, "draw_start");
         } else {
             keys.put("lmb", "draw_start");
