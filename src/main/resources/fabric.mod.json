@@ -12,6 +12,7 @@
 	"icon": "assets/hexcessible/icon.png",
 	"environment": "client",
 	"entrypoints": {
+		"client": ["dev.tizu.hexcessible.HexcessibleClient"],
 		"modmenu": ["dev.tizu.hexcessible.interop.FabricModMenuInterop"]
 	},
 	"mixins": [
