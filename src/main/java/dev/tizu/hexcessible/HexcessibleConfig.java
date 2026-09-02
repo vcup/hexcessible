@@ -85,6 +85,8 @@ public class HexcessibleConfig implements ConfigData {
         public boolean keyHint = true;
         @ConfigEntry.Gui.Tooltip
         public boolean ghost = true;
+        @ConfigEntry.Gui.Tooltip
+        public boolean relative = true;
     }
 
     public static class AutoComplete {

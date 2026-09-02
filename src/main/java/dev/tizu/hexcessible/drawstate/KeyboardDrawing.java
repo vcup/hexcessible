@@ -27,6 +27,8 @@ import net.minecraft.util.math.Vec2f;
 public final class KeyboardDrawing extends DrawState {
     public static final List<Character> validSig = List.of(
             'q', 'w', 'e', 'a', 'd', 'Q', 'W', 'E', 'A', 'D');
+    public static final List<Character> validAbsSig = List.of(
+            'q', 'e', 'a', 'd', 'z', 'c', 'Q', 'E', 'A', 'D', 'Z', 'C');
     public static final int COLOR1 = 0xff_64c8ff;
     public static final int COLOR2 = 0xff_fecbe6;
     public static final int COLOR3 = 0xaa_363a4f;
@@ -123,8 +125,14 @@ public final class KeyboardDrawing extends DrawState {
             return;
         if (Character.toLowerCase(chr) == 's') { // go back
             removeCharFromSig();
-        } else if (validSig.contains(chr)) { // valid
+        } else if (Hexcessible.cfg().keyboardDraw.relative && validSig.contains(chr)) { // valid
             var angle = Utils.angle(chr);
+            if (canGo(angle)) {
+                sig.add(angle);
+                recalculateNewAll();
+            }
+        } else if (!Hexcessible.cfg().keyboardDraw.relative && validAbsSig.contains(chr)) { // valid
+            var angle = Utils.angle(chr, endDir);
             if (canGo(angle)) {
                 sig.add(angle);
                 recalculateNewAll();
@@ -238,7 +246,9 @@ public final class KeyboardDrawing extends DrawState {
         var endpx = castref.coordToPx(end);
         for (var angle : HexAngle.values()) {
             var pos = end.plus(endDir.rotatedBy(angle));
-            var charstr = Utils.angle(angle);
+            var charstr = Hexcessible.cfg().keyboardDraw.relative
+                    ? Utils.angle(angle)
+                    : String.valueOf(Utils.absAngle(endDir.rotatedBy(angle)));
             if (castref.isUsed(pos) || !canGo(angle) || charstr == null)
                 continue;
             var px = castref.coordToPx(pos);
@@ -333,9 +343,10 @@ public final class KeyboardDrawing extends DrawState {
         var keys = new HashMap<String, String>();
 
         if (Hexcessible.cfg().keyboardDraw.allow) {
-            var kbdChars = String.join("/", KeyboardDrawing.validSig
-                    .subList(0, KeyboardDrawing.validSig.size() / 2).stream()
-                    .map(Object::toString).toList());
+        	var all = Hexcessible.cfg().keyboardDraw.relative
+         			? KeyboardDrawing.validSig : KeyboardDrawing.validAbsSig;
+            var kbdChars = String.join("/", all.subList(0, all.size() / 2)
+            		.stream().map(Object::toString).toList());
             keys.put(kbdChars, "draw_start");
             keys.put("bksp/s", "undo");
         }

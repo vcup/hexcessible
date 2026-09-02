@@ -72,8 +72,33 @@ public class Utils {
         };
     }
 
+    // qeadzc translate into top-left to bottom-right angles of the hexagon,
+    // absolute. An angle relative to the last direction is returned
+    public static HexAngle angle(char c, HexDir lastDir) {
+        return switch (Character.toLowerCase(c)) {
+            case 'q' -> HexDir.NORTH_WEST.angleFrom(lastDir);
+            case 'e' -> HexDir.NORTH_EAST.angleFrom(lastDir);
+            case 'a' -> HexDir.WEST.angleFrom(lastDir);
+            case 'd' -> HexDir.EAST.angleFrom(lastDir);
+            case 'z' -> HexDir.SOUTH_WEST.angleFrom(lastDir);
+            case 'c' -> HexDir.SOUTH_EAST.angleFrom(lastDir);
+            default -> throw new IllegalStateException(c + " invalid");
+        };
+    }
+
     public static List<HexAngle> angle(String angles) {
         return angles.chars().mapToObj(c -> angle((char) c)).toList();
+    }
+
+    public static char absAngle(HexDir dir) {
+        return switch (dir) {
+            case NORTH_WEST -> 'q';
+            case NORTH_EAST -> 'e';
+            case WEST -> 'a';
+            case EAST -> 'd';
+            case SOUTH_WEST -> 'z';
+            case SOUTH_EAST -> 'c';
+        };
     }
 
     public static String angle(HexAngle angle) {
