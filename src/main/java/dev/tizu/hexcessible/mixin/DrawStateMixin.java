@@ -125,9 +125,9 @@ public class DrawStateMixin implements DrawStateMixinAccessor {
         for (var hint : hints.entrySet()) {
             var text = Text.empty()
                     .append(Text.literal(hint.getKey() + " ")
-                            .formatted(Formatting.GRAY))
+                            .formatted(Formatting.WHITE))
                     .append(Text.translatable("hexcessible.hint." + hint.getValue())
-                            .formatted(Formatting.DARK_GRAY));
+                            .formatted(Formatting.GRAY));
             ctx.drawTextWithShadow(MinecraftClient.getInstance().textRenderer,
                     text, x, y, 0xFFFFFF);
             y -= 10;
