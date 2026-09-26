@@ -54,26 +54,32 @@ public class BookEntries {
         var entries = new HashMap<String, List<Entry>>();
         var locked = new HashMap<String, Supplier<Boolean>>();
         book.getContents().entries.forEach((entryid, entry) -> {
-            var pagei = new AtomicInteger(0);
+            // Position within the pages Patchouli currently exposes, used only as a fallback.
+            var visible = new AtomicInteger(0);
             entry.getPages().forEach(page -> {
+                var visibleIndex = visible.getAndIncrement();
                 var root = page.sourceObject;
                 if (root == null)
                     return;
                 try {
-                    var type = JsonHelper.getString(root, "type");
-                    switch (type) {
-                        case "hexcasting:pattern":
-                            var id = JsonHelper.getString(root, "op_id");
-                            if (!locked.containsKey(id))
-                                locked.put(id, entry::isLocked);
-                            var desc = JsonHelper.getString(root, "text", "");
-                            var in = JsonHelper.getString(root, "input", "");
-                            var out = JsonHelper.getString(root, "output", "");
-                            entries.computeIfAbsent(id, k -> new ArrayList<>())
-                                    .add(new Entry(id, entryid, desc, in, out,
-                                            pagei.getAndIncrement()));
-                            break;
-                    }
+                    if (!"hexcasting:pattern".equals(JsonHelper.getString(root, "type")))
+                        return;
+                    var id = JsonHelper.getString(root, "op_id");
+                    if (!locked.containsKey(id))
+                        locked.put(id, entry::isLocked);
+                    var desc = JsonHelper.getString(root, "text", "");
+                    var in = JsonHelper.getString(root, "input", "");
+                    var out = JsonHelper.getString(root, "output", "");
+                    // The page number handed to Patchouli is not "the Nth pattern page" but the
+                    // index Patchouli itself resolves from an anchor: setTopEntry divides it by two
+                    // to find the spread. A pattern page's anchor is its op id, so Patchouli's own
+                    // lookup is authoritative — it accounts for pages hidden by advancement gating,
+                    // which a hand-rolled counter cannot. Only the raw count is used as a fallback
+                    // if the anchor cannot be resolved.
+                    var anchored = entry.getPageFromAnchor(id);
+                    var pageNo = anchored >= 0 ? anchored : visibleIndex;
+                    entries.computeIfAbsent(id, k -> new ArrayList<>())
+                            .add(new Entry(id, entryid, desc, in, out, pageNo));
                 } catch (JsonSyntaxException e) {
                     Hexcessible.LOGGER.error("Failed to parse entry {}", entryid, e);
                 }
