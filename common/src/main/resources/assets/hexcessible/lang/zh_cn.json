@@ -41,6 +41,8 @@
     "text.autoconfig.hexcessible.option.showAllDots.@Tooltip": "完整显示咒术网格点阵，而非仅显示邻近鼠标的点",
     "text.autoconfig.hexcessible.option.keyDocs": "N键打开文档",
     "text.autoconfig.hexcessible.option.keyDocs.@Tooltip": "施法时按下N可打开咒术笔记",
+    "text.autoconfig.hexcessible.option.keyDocsKey": "文档按键",
+    "text.autoconfig.hexcessible.option.keyDocsKey.@Tooltip": "施法时打开咒术笔记的按键，例如 key.keyboard.n。设为 key.keyboard.unknown 可禁用。默认与 Hexical 的咒术笔记同键（N）且打开同一本书，故二者会冲突。",
     "text.autoconfig.hexcessible.option.uppercaseSig": "大写笔顺签名",
     "text.autoconfig.hexcessible.option.uppercaseSig.@Tooltip": "以大写显示笔顺签名，如将qaq显示为QAQ",
     "text.autoconfig.hexcessible.option.noHexicalWalk": "[Hexical] 阻止行走",

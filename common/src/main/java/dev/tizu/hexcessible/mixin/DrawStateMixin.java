@@ -20,6 +20,7 @@ import at.petrak.hexcasting.api.casting.math.HexCoord;
 import at.petrak.hexcasting.api.casting.math.HexPattern;
 import at.petrak.hexcasting.client.gui.GuiSpellcasting;
 import dev.tizu.hexcessible.Hexcessible;
+import dev.tizu.hexcessible.HexBookHotkey;
 import dev.tizu.hexcessible.accessor.CastRef;
 import dev.tizu.hexcessible.accessor.CastingInterfaceAccessor;
 import dev.tizu.hexcessible.accessor.DrawStateMixinAccessor;
@@ -40,6 +41,12 @@ public abstract class DrawStateMixin implements DrawStateMixinAccessor {
     private DrawState state;
     @Unique
     private boolean noActing;
+    /**
+     * A draw state to reuse the next time {@code init} runs on this screen. Set just before the
+     * screen is re-installed after a trip to the Hex Book, so the in-progress drawing survives.
+     */
+    @Unique
+    private DrawState resumeState;
 
     @Shadow(remap = false)
     private Hand handOpenedWith;
@@ -75,11 +82,15 @@ public abstract class DrawStateMixin implements DrawStateMixinAccessor {
     @Inject(at = @At("HEAD"), method = "init")
     private void init(CallbackInfo info) {
         PatternEntries.INSTANCE.invalidateCaches();
+        HexBookHotkey.warnIfKeyConflicts();
         var castui = (GuiSpellcasting) (Object) this;
         var accessor = new CastingInterfaceAccessor(castui);
         castref = new CastRef(castui, accessor, handOpenedWith, patterns,
                 usedSpots, this::hexcessible$drawEnd);
-        state = DrawState.getNew(castref);
+        // setScreen() on the way back from the Hex Book re-runs init on this same screen, which
+        // would otherwise reset an in-progress draw to Idling and lose the user's half-typed pattern.
+        state = resumeState != null ? resumeState : DrawState.getNew(castref);
+        resumeState = null;
         noActing = !(MinecraftClient.getInstance().currentScreen instanceof GuiSpellcasting);
     }
 
@@ -180,5 +191,10 @@ public abstract class DrawStateMixin implements DrawStateMixinAccessor {
     @Override
     public void disallowTyping() {
         castref.disallowTyping();
+    }
+
+    @Override
+    public void hexcessible$resumeState(DrawState previous) {
+        this.resumeState = previous;
     }
 }

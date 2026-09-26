@@ -31,7 +31,17 @@ public class HexcessibleConfig implements ConfigData {
     public boolean showAllDots = false;
     @ConfigEntry.Gui.Tooltip
     @ConfigEntry.Gui.EnumHandler(option = EnumDisplayOption.BUTTON)
-    public KeyDocs keyDocs = KeyDocs.IDLING; // TODO: customizable keybind
+    public KeyDocs keyDocs = KeyDocs.IDLING;
+    /**
+     * The key that opens the Hex Book from the casting screen, as a key translation key.
+     * <p>
+     * Configurable because the default, {@code key.keyboard.n}, collides with Hexical: Hexical binds
+     * its own {@code key.hexical.open_hexbook} ("Open Hex Notebook") to N by default and opens the
+     * very same book, so with both installed the key is ambiguous. Setting this to
+     * {@code key.keyboard.unknown} disables the hotkey entirely, leaving N to Hexical.
+     */
+    @ConfigEntry.Gui.Tooltip
+    public String keyDocsKey = "key.keyboard.n";
     @ConfigEntry.Gui.Tooltip
     public boolean uppercaseSig = false;
     @ConfigEntry.Gui.Tooltip
