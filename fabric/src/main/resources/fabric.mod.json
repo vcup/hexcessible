@@ -18,6 +18,10 @@
     {
       "config": "hexcessible.mixins.json",
       "environment": "client"
+    },
+    {
+      "config": "hexcessible.selftest.mixins.json",
+      "environment": "client"
     }
   ],
   "depends": {

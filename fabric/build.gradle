@@ -86,8 +86,27 @@ dependencies {
 
 processResources {
     inputs.property "version", project.version
+    // The checked-in fabric.mod.json lists the self-test mixin config, so the file is always valid
+    // JSON and a self-test build needs no rewriting. A release build removes that one entry in
+    // doLast, after the JSON markers have been expanded: the config itself is not packaged (see
+    // common/build.gradle), and a reference to a missing mixin config makes Fabric Loader refuse to
+    // start the mod. The edit is done on the parsed/written text rather than through the
+    // line-oriented `filter`, which cannot see a multi-line JSON object.
+    inputs.property "selftest", project.hasProperty("selftest")
     filesMatching("fabric.mod.json") {
         expand "version": project.version
+    }
+    if (!project.hasProperty("selftest")) {
+        doLast {
+            def modJson = file("${destinationDir}/fabric.mod.json")
+            def text = modJson.text
+            def withoutSelftest = text.replaceAll(
+                    /(?s),\s*\{\s*"config"\s*:\s*"hexcessible\.selftest\.mixins\.json"\s*,\s*"environment"\s*:\s*"client"\s*\}/,
+                    '')
+            if (withoutSelftest == text)
+                throw new GradleException("self-test mixin entry not found in fabric.mod.json")
+            modJson.text = withoutSelftest
+        }
     }
 }
 

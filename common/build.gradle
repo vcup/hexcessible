@@ -4,6 +4,22 @@ architectury {
     common(project.enabledPlatforms.split(","))
 }
 
+// The in-game self-test driver is a development tool: it is the only way to reach the client-only
+// mixin behaviour from an automated run, but it has no business in a released jar. Gating it on a
+// property keeps one source tree and two artifacts, rather than a permanently shipped test hook.
+def selftest = project.hasProperty("selftest")
+
+sourceSets {
+    main {
+        java {
+            if (!selftest) exclude "dev/tizu/hexcessible/test/**"
+        }
+        resources {
+            if (!selftest) exclude "hexcessible.selftest.mixins.json"
+        }
+    }
+}
+
 // NOTE: common/ is deliberately free of loader-specific APIs. The only loader types it touches are
 // Fabric's @Environment/@EnvType annotations (compile-only, and dropped at runtime because they are
 // CLASS-retention) and Hex Casting's own cross-platform xplat API, which both loaders implement.

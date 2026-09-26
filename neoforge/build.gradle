@@ -22,6 +22,9 @@ loom {
         // Every mixin config the NeoForge jar should load, including the one shipped by common/.
         // This is what writes the MixinConfigs manifest attribute FML reads on this platform.
         mixinConfig "hexcessible.mixins.json"
+        // Only a self-test build ships (and therefore registers) the driver's config.
+        if (project.hasProperty("selftest"))
+            mixinConfig "hexcessible.selftest.mixins.json"
     }
 }
 
