@@ -33,7 +33,7 @@ import net.minecraft.util.Hand;
 import net.minecraft.util.math.Vec2f;
 
 @Mixin(GuiSpellcasting.class)
-public class DrawStateMixin implements DrawStateMixinAccessor {
+public abstract class DrawStateMixin implements DrawStateMixinAccessor {
     @Unique
     private CastRef castref;
     @Unique
@@ -48,9 +48,28 @@ public class DrawStateMixin implements DrawStateMixinAccessor {
     @Shadow(remap = false)
     private Set<HexCoord> usedSpots;
 
-    @Shadow(remap = false, prefix = "hexcessible$")
+    /**
+     * Hex Casting's own {@code drawEnd}, which commits the pattern currently being drawn.
+     * <p>
+     * A shadow contributes no body to the target — it is only a handle on the private method, hence
+     * the abstract declaration (and the abstract mixin class).
+     */
+    @Shadow(remap = false)
+    protected abstract boolean drawEnd();
+
+    /**
+     * The accessor interface's {@code hexcessible$drawEnd}, which {@link CastRef} calls through
+     * {@code stopDrawing()} whenever {@code AutoCompleting} stops the in-progress pattern.
+     * <p>
+     * This has to be a separate, concrete member. When the accessor name was itself declared as the
+     * shadow (via {@code @Shadow(prefix = "hexcessible$")}), nothing implemented the interface
+     * member: the shadow only renames the target's method, so the interface method stayed abstract
+     * and every call died with {@code AbstractMethodError: GuiSpellcasting.hexcessible$drawEnd()Z is
+     * abstract} — which is exactly what typing in the autocomplete box triggered.
+     */
+    @Override
     public boolean hexcessible$drawEnd() {
-        return false;
+        return this.drawEnd();
     }
 
     @Inject(at = @At("HEAD"), method = "init")
