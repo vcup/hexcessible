@@ -28,15 +28,26 @@ public class BookEntries {
 
     private Map<String, List<Entry>> entries = Map.of();
     private Map<String, Supplier<Boolean>> locked = Map.of();
+    /** Whether {@link #reindex()} has run against an actually-loaded book. */
+    private boolean loaded = false;
 
     private BookEntries() {
         reindex();
     }
 
+    /**
+     * Indexes the book, provided Patchouli has loaded it.
+     * <p>
+     * The book is built as part of the client's resource reload, which can finish <em>after</em> the
+     * first query (this class is constructed from {@code PatternEntries}' initializer, which runs on
+     * first use). An earlier version logged an error and returned, leaving the index permanently
+     * empty, so a query arriving too early disabled the pattern-to-book link for the whole session.
+     * {@link #loaded} therefore stays false on a miss and {@link #ensureLoaded()} retries later.
+     */
     public void reindex() {
         var book = BookRegistry.INSTANCE.books.get(BOOKID);
         if (book == null) {
-            Hexcessible.LOGGER.error("Book {} not found", BOOKID);
+            Hexcessible.LOGGER.debug("Book {} not loaded yet; will retry on next query", BOOKID);
             return;
         }
 
@@ -70,6 +81,13 @@ public class BookEntries {
         });
         this.entries = entries;
         this.locked = locked;
+        this.loaded = true;
+    }
+
+    /** Indexes the book on first successful access, retrying until Patchouli has it. */
+    private void ensureLoaded() {
+        if (!loaded)
+            reindex();
     }
 
     public static record Entry(String id, @Nullable Identifier entryid,
@@ -86,15 +104,18 @@ public class BookEntries {
     }
 
     public List<Entry> get(Identifier id) {
+        ensureLoaded();
         return entries.getOrDefault(id.toString(), List.of());
     }
 
     public boolean isLocked(String id) {
+        ensureLoaded();
         return locked.getOrDefault(id, () -> false).get();
     }
 
     @Nullable
     public Entry getBookEntryFor(String id) {
+        ensureLoaded();
         return entries.getOrDefault(id, List.of()).stream().findFirst().orElse(null);
     }
 }
