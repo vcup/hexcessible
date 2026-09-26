@@ -1,0 +1,44 @@
+archivesBaseName = "${project.archives_base_name}-common"
+
+architectury {
+    common(project.enabledPlatforms.split(","))
+}
+
+// NOTE: common/ is deliberately free of loader-specific APIs. The only loader types it touches are
+// Fabric's @Environment/@EnvType annotations (compile-only, and dropped at runtime because they are
+// CLASS-retention) and Hex Casting's own cross-platform xplat API, which both loaders implement.
+dependencies {
+    // Only for the @Environment/@EnvType annotations; no Fabric loader classes are used at runtime.
+    modCompileOnly "net.fabricmc:fabric-loader:${project.loader_version}"
+
+    // Hex Casting and its own stack. The api/ and xplat/ packages the shared code uses are
+    // identical between the Fabric and Forge builds, so compiling common against the Fabric
+    // artifacts and running against the platform ones is what the interop code already assumes.
+    // Hex Casting is a client mod for us: the whole mod is client-side, so the Forge build of it
+    // is supplied at runtime by the platform module rather than compiled against here.
+    modCompileOnly("at.petra-k.hexcasting:hexcasting-fabric-${project.minecraft_version}:${project.hexcasting_version}") {
+        exclude module: "phosphor"
+        exclude module: "lithium"
+    }
+
+    // Patchouli: the Hex Book is read directly (BookEntries) and opened by hotkey (KeyDocsScreenMixin).
+    modCompileOnly "vazkii.patchouli:Patchouli:${project.minecraft_version}-${project.patchouli_version}-FABRIC"
+
+    // Cloth Config / AutoConfig: the config model and its screen.
+    modCompileOnly "me.shedaniel.cloth:cloth-config-fabric:${project.clothconfig_version}"
+
+    // HexDebug's Splicing Table is a second casting surface, so its screen is mixed into. Its API
+    // is loader-agnostic; each platform supplies its own runtime jar.
+    modCompileOnly "gay.object.hexdebug:hexdebug-fabric:${project.hexdebug_version}+${project.minecraft_version}"
+
+    modCompileOnly files("${rootProject.rootDir}/libs/serialization-hooks-0.4.99999.jar")
+}
+
+publishing {
+    publications {
+        mavenCommon(MavenPublication) {
+            artifactId = project.archivesBaseName
+            from components.java
+        }
+    }
+}

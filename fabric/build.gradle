@@ -1,0 +1,120 @@
+plugins {
+    id "com.github.johnrengelman.shadow" version "7.1.2"
+}
+
+archivesBaseName = "${project.archives_base_name}-fabric"
+
+architectury {
+    platformSetupLoomIde()
+    fabric()
+}
+
+loom {
+    mixin {
+        defaultRefmapName = "hexcessible.fabric.refmap.json"
+    }
+
+    // Run configs so the Fabric half can actually be launched, not just compile-checked.
+    runs {
+        server {
+            server()
+            setConfigName("Fabric Server")
+            runDir "run"
+        }
+        client {
+            client()
+            setConfigName("Fabric Client")
+            // The client gets its own game directory: Fabric Loader processes mods into a per-run
+            // cache and two runs writing it at once fails with a sharing violation.
+            runDir "run-client"
+            // The Fabric dev server listens on 25566 (25565 is the NeoForge test instance), and the
+            // self-test script joins explicitly rather than relying on quick play, which the client
+            // skips when it cannot reach Mojang's session services.
+            programArgs "--username", "Tester"
+        }
+    }
+}
+
+configurations {
+    common
+    shadowCommon // Don't use shadow from the shadow plugin since it *excludes* files.
+    compileClasspath.extendsFrom common
+    runtimeClasspath.extendsFrom common
+    developmentFabric.extendsFrom common
+}
+
+dependencies {
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+
+    // Hex Casting and its own Fabric stack.
+    modImplementation("at.petra-k.hexcasting:hexcasting-fabric-${project.minecraft_version}:${project.hexcasting_version}") {
+        exclude module: "phosphor"
+        exclude module: "lithium"
+    }
+    modImplementation "vazkii.patchouli:Patchouli:${project.minecraft_version}-${project.patchouli_version}-FABRIC"
+
+    // ModMenu is the Fabric config-screen entrypoint host.
+    modApi "com.terraformersmc:modmenu:${project.modmenu_version}"
+    modApi("me.shedaniel.cloth:cloth-config-fabric:${project.clothconfig_version}") {
+        exclude(group: "net.fabricmc.fabric-api")
+    }
+
+    // HexDebug's Splicing Table is a second casting surface; the API is present at compile time so
+    // the interop mixin links. It is optional at runtime, and the mixin is guarded by mod presence.
+    modCompileOnly "gay.object.hexdebug:hexdebug-fabric:${project.hexdebug_version}+${project.minecraft_version}"
+    modLocalRuntime "gay.object.hexdebug:hexdebug-fabric:${project.hexdebug_version}+${project.minecraft_version}"
+
+    // Runtime-only pieces needed to actually launch a Fabric dev server/client: Hex Casting's
+    // Fabric build requires all of these, so they must be present even though our code does not
+    // compile against them.
+    modLocalRuntime "net.fabricmc:fabric-language-kotlin:${project.fabric_kotlin_version}"
+    // Hex Casting's Fabric build keeps entity/item state in Cardinal Components, and declares the
+    // individual modules rather than the aggregate, so they are pulled in individually.
+    modLocalRuntime "dev.onyxstudios.cardinal-components-api:cardinal-components-base:${project.cardinal_components_version}"
+    modLocalRuntime "dev.onyxstudios.cardinal-components-api:cardinal-components-entity:${project.cardinal_components_version}"
+    modLocalRuntime "dev.onyxstudios.cardinal-components-api:cardinal-components-item:${project.cardinal_components_version}"
+    modLocalRuntime "dev.onyxstudios.cardinal-components-api:cardinal-components-block:${project.cardinal_components_version}"
+    modLocalRuntime "com.samsthenerd.inline:inline-fabric:${project.minecraft_version}-1.2.2-12"
+    modLocalRuntime "at.petra-k:paucal:0.6.1-pre-7+1.20.1-fabric"
+    // Hex Casting's Fabric build resolves SerializationHooks' BaseCustomIngredient while loading.
+    modLocalRuntime files("${rootProject.rootDir}/libs/serialization-hooks-0.4.99999.jar")
+
+    common(project(path: ":common", configuration: "namedElements")) { transitive false }
+    shadowCommon(project(path: ":common", configuration: "transformProductionFabric")) { transitive false }
+}
+
+processResources {
+    inputs.property "version", project.version
+    filesMatching("fabric.mod.json") {
+        expand "version": project.version
+    }
+}
+
+shadowJar {
+    exclude "architectury.common.json"
+    configurations = [project.configurations.shadowCommon]
+    archiveClassifier.set "dev-shadow"
+}
+
+remapJar {
+    input.set shadowJar.archiveFile
+    dependsOn shadowJar
+    archiveClassifier.set null
+}
+
+jar {
+    archiveClassifier.set "dev"
+}
+
+sourcesJar {
+    def commonSources = project(":common").sourcesJar
+    dependsOn commonSources
+    from commonSources.archiveFile.map { zipTree(it) }
+}
+
+components.java {
+    withVariantsFromConfiguration(project.configurations.shadowRuntimeElements) {
+        skip()
+    }
+}

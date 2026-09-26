@@ -1,0 +1,61 @@
+modLoader = "javafml"
+loaderVersion = "[47,)"
+license = "The JSON License"
+
+[[mods]]
+modId = "hexcessible"
+version = "${version}"
+displayName = "Hexcessible"
+logoFile = "assets/hexcessible/icon.png"
+authors = "Ruby (tizu), ElNico56"
+description = '''
+Hex Casting, with a bit more accessibility sprinkled on top.
+'''
+
+# On Minecraft 1.20.1 NeoForge identifies itself with the "forge" mod id and keeps the
+# net.minecraftforge.* packages, so this is what a NeoForge-targeted 1.20.1 mod depends on.
+[[dependencies.hexcessible]]
+modId = "forge"
+mandatory = true
+versionRange = "[47,)"
+ordering = "NONE"
+side = "CLIENT"
+
+[[dependencies.hexcessible]]
+modId = "minecraft"
+mandatory = true
+versionRange = "[1.20.1,1.21)"
+ordering = "NONE"
+side = "CLIENT"
+
+[[dependencies.hexcessible]]
+modId = "hexcasting"
+mandatory = true
+versionRange = "[0.11.2,)"
+ordering = "NONE"
+side = "CLIENT"
+
+# Cloth Config supplies the config screen; Patchouli is the Hex Book our "open docs" hotkey drives.
+# Both come in with Hex Casting itself, so they are declared only to be explicit about the link.
+[[dependencies.hexcessible]]
+modId = "cloth_config"
+mandatory = true
+versionRange = "[11,)"
+ordering = "NONE"
+side = "CLIENT"
+
+[[dependencies.hexcessible]]
+modId = "patchouli"
+mandatory = true
+versionRange = "[1.20.1-80,)"
+ordering = "NONE"
+side = "CLIENT"
+
+# Optional: the Splicing Table is a second casting surface we hook into, and every use is behind a
+# mod-presence check, so HexDebug may be absent.
+[[dependencies.hexcessible]]
+modId = "hexdebug"
+mandatory = false
+versionRange = "[0,)"
+ordering = "NONE"
+side = "CLIENT"

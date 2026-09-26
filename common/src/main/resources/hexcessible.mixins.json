@@ -1,0 +1,26 @@
+{
+  "required": true,
+  "package": "dev.tizu.hexcessible.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "minVersion": "0.8",
+  "plugin": "dev.tizu.hexcessible.mixin.HexcessibleMixinPlugin",
+  "client": [
+    "DrawStateMixin",
+    "DrawStateScreenMixin",
+    "DrawStateCharTypedMixin",
+    "FloatiesMixin",
+    "DimmedMixin",
+    "KeyDocsScreenMixin",
+    "PerWorldLearnMixin",
+    "DrawStateHexdbgInteropMixin",
+    "NoHexicalWalkMixin",
+    "NoHexicalEvokeMixin",
+    "RenderLibMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}

@@ -28,9 +28,15 @@ bin/
 
 *.DS_Store
 
-# fabric
+# fabric / architectury
+# Each platform's dev run directory (fabric/run-client, neoforge/run, ...) holds game logs,
+# screenshots, saves and per-instance config: runtime state, never source. The bare "run/" rule
+# alone misses the suffixed directories, which is how a whole run-client tree once showed up as
+# untracked and would have been swept into a commit by "git add -A".
 
 run/
+run-*/
+.architectury-transformer/
 
 # java
 

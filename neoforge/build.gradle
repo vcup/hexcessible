@@ -1,0 +1,117 @@
+plugins {
+    id "com.github.johnrengelman.shadow" version "7.1.2"
+}
+
+archivesBaseName = "${project.archives_base_name}-neoforge"
+
+architectury {
+    platformSetupLoomIde()
+    // For Minecraft 1.20.1 Architectury Loom still calls the NeoForge platform "forge"; only the
+    // loader artifact differs (net.neoforged:forge instead of net.minecraftforge:forge).
+    // See https://docs.architectury.dev/loom/using_neo
+    forge()
+}
+
+loom {
+    mixin {
+        // The shared mixin config lives in common/ but is applied by this module too, so it needs a
+        // refmap generated for the NeoForge (SRG) namespace.
+        defaultRefmapName = "hexcessible.neoforge.refmap.json"
+    }
+    forge {
+        // Every mixin config the NeoForge jar should load, including the one shipped by common/.
+        // This is what writes the MixinConfigs manifest attribute FML reads on this platform.
+        mixinConfig "hexcessible.mixins.json"
+    }
+}
+
+configurations {
+    common
+    shadowCommon
+    compileClasspath.extendsFrom common
+    runtimeClasspath.extendsFrom common
+    developmentForge.extendsFrom common
+}
+
+repositories {
+    // Kotlin for Forge lives in its own GitHub-hosted maven, and Hex Casting's Forge build needs it.
+    maven {
+        name = 'Kotlin for Forge'
+        url = 'https://thedarkcolour.github.io/KotlinForForge/'
+    }
+    maven { url = "https://maven.theillusivec4.top" }
+}
+
+dependencies {
+    // NeoForge for 1.20.1 is published as net.neoforged:forge and keeps net.minecraftforge.* packages.
+    forge "net.neoforged:forge:${project.neoforge_version}"
+
+    // Hex Casting and its own Forge-side stack. The hexisle pack ships the Forge builds of all of
+    // these, so the NeoForge build links against the very same artifacts.
+    modCompileOnly("at.petra-k.hexcasting:hexcasting-forge-${project.minecraft_version}:${project.hexcasting_version}") {
+        transitive = false
+    }
+    modRuntimeOnly("at.petra-k.hexcasting:hexcasting-forge-${project.minecraft_version}:${project.hexcasting_version}") {
+        transitive = false
+    }
+    modCompileOnly "vazkii.patchouli:Patchouli:${project.minecraft_version}-${project.patchouli_version}-FORGE"
+    modRuntimeOnly "vazkii.patchouli:Patchouli:${project.minecraft_version}-${project.patchouli_version}-FORGE"
+
+    // Cloth Config / AutoConfig: the config model and its screen.
+    modCompileOnly("me.shedaniel.cloth:cloth-config-forge:${project.clothconfig_version}") { transitive = false }
+    modRuntimeOnly("me.shedaniel.cloth:cloth-config-forge:${project.clothconfig_version}") { transitive = false }
+
+    // HexDebug's Splicing Table is a second casting surface.
+    modCompileOnly("gay.object.hexdebug:hexdebug-forge:${project.hexdebug_version}+${project.minecraft_version}") { transitive = false }
+    modRuntimeOnly("gay.object.hexdebug:hexdebug-forge:${project.hexdebug_version}+${project.minecraft_version}") { transitive = false }
+
+    // Kotlin runtime for Hex Casting's Forge build. Hex Casting's Forge jar loads through
+    // Kotlin for Forge, which the pack provides.
+    modRuntimeOnly "thedarkcolour:kotlinforforge:4.12.0"
+
+    // NeoForge 1.20.1 does not bundle MixinExtras, but FloatiesMixin/RenderLibMixin/DrawStateMixin
+    // use @WrapMethod. Fabric Loader bundles MixinExtras itself, so only this module needs it
+    // explicitly, and it is Jar-in-Jar'd so the mod does not silently depend on some other installed
+    // mod happening to ship it.
+    modImplementation(include("io.github.llamalad7:mixinextras-forge:${project.mixin_extras_version}"))
+
+    common(project(path: ":common", configuration: "namedElements")) { transitive false }
+    shadowCommon(project(path: ":common", configuration: "transformProductionForge")) { transitive = false }
+}
+
+processResources {
+    inputs.property "version", project.version
+    filesMatching("META-INF/mods.toml") {
+        expand "version": project.version
+    }
+}
+
+shadowJar {
+    exclude "fabric.mod.json"
+    exclude "architectury.common.json"
+    exclude "hexcessible.fabric.mixins.json"
+    configurations = [project.configurations.shadowCommon]
+    archiveClassifier.set "dev-shadow"
+}
+
+remapJar {
+    input.set shadowJar.archiveFile
+    dependsOn shadowJar
+    archiveClassifier.set null
+}
+
+jar {
+    archiveClassifier.set "dev"
+}
+
+sourcesJar {
+    def commonSources = project(":common").sourcesJar
+    dependsOn commonSources
+    from commonSources.archiveFile.map { zipTree(it) }
+}
+
+components.java {
+    withVariantsFromConfiguration(project.configurations.shadowRuntimeElements) {
+        skip()
+    }
+}

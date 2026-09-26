@@ -1,69 +1,87 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-
 plugins {
-	id 'fabric-loom' version "${loom_version}"
-	id 'maven-publish'
-    id "org.jetbrains.kotlin.jvm" version "${kotlin_version}"
+    id "architectury-plugin" version "3.4.+"
+    id "dev.architectury.loom" version "1.9.+" apply false
 }
 
-version = project.mod_version
-group = project.maven_group
-
-base {
-	archivesName = project.archives_base_name
+architectury {
+    minecraft = project.minecraft_version
 }
 
-repositories {
-    maven { url = "https://maven.blamejared.com/" }
-    maven { url = "https://maven.ladysnake.org/releases" }
-    maven { url = "https://maven.shedaniel.me/" }
-    maven { url = "https://maven.terraformersmc.com/releases" }
+subprojects {
+    apply plugin: "dev.architectury.loom"
+
+    dependencies {
+        minecraft "com.mojang:minecraft:${project.minecraft_version}"
+        // Yarn is kept deliberately: every source file is written against Yarn names, and
+        // Architectury Loom remaps them to SRG/official for the NeoForge platform.
+        mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+
+        annotationProcessor "org.ow2.asm:asm:${project.asmVersion}"
+        annotationProcessor "org.ow2.asm:asm-analysis:${project.asmVersion}"
+        annotationProcessor "org.ow2.asm:asm-commons:${project.asmVersion}"
+        annotationProcessor "org.ow2.asm:asm-tree:${project.asmVersion}"
+        annotationProcessor "org.ow2.asm:asm-util:${project.asmVersion}"
+    }
 }
 
-dependencies {
-	minecraft "com.mojang:minecraft:$minecraft_version"
-	mappings "net.fabricmc:yarn:$yarn_mappings"
-	modImplementation "net.fabricmc:fabric-loader:$loader_version"
-	modImplementation "net.fabricmc.fabric-api:fabric-api:$fabric_api_version"
-	modImplementation "net.fabricmc:fabric-language-kotlin:$fabric_kotlin_version"
+allprojects {
+    apply plugin: "java"
+    apply plugin: "architectury-plugin"
+    apply plugin: "maven-publish"
 
-	modImplementation("at.petra-k.hexcasting:hexcasting-fabric-$minecraft_version:$hexcasting_version") {
-		exclude module: "phosphor"
-		exclude module: "lithium"
-		exclude module: "emi"
-	}
+    version = project.mod_version
+    group = project.maven_group
 
-    modApi "com.terraformersmc:modmenu:$modmenu_version"
-	modLocalRuntime "dev.onyxstudios.cardinal-components-api:cardinal-components-api:$cardinal_components_version"
-	modImplementation "me.shedaniel.cloth:cloth-config-fabric:$cloth_config_version"
-	modLocalRuntime "com.samsthenerd.inline:inline-fabric:$minecraft_version-$inline_version"
-	modImplementation "vazkii.patchouli:Patchouli:$minecraft_version-$patchouli_version-FABRIC"
-	modLocalRuntime "at.petra-k.paucal:paucal-fabric-$minecraft_version:$paucal_version"
-	modLocalRuntime files("${rootProject.rootDir}/libs/serialization-hooks-0.4.99999.jar")
+    repositories {
+        mavenCentral()
+        flatDir {
+            name = "localModLibs"
+            dir rootProject.file("libs")
+        }
+        // Ordering matters: Gradle aborts on a hard repository error (a TLS handshake failure is
+        // one) instead of falling through to the next repo, so the hosts that actually hold most
+        // artifacts are queried before the flakier general-purpose ones.
+        maven { url "https://maven.blamejared.com" }
+        maven { url "https://maven.shedaniel.me/" }
+        maven {
+            name = "NeoForged"
+            url = "https://maven.neoforged.net/releases/"
+        }
+        maven { url "https://maven.terraformersmc.com/releases/" }
+        maven { url "https://maven.architectury.dev/" }
+        maven { url "https://maven.ladysnake.org/releases" }
+        maven { url "https://jitpack.io" }
+        exclusiveContent {
+            forRepository {
+                maven {
+                    name = "Modrinth"
+                    url = "https://api.modrinth.com/maven"
+                }
+            }
+            filter {
+                includeGroup "maven.modrinth"
+            }
+        }
+    }
 
-    // HexDebug: The Splicing Table offers a casting interface which we should also account for.
-    modApi "gay.object.hexdebug:hexdebug-fabric:$hexdebug_version+$minecraft_version"
-}
+    tasks.withType(JavaCompile).configureEach {
+        it.options.encoding = "UTF-8"
+        it.options.release = 17
+    }
 
-processResources {
-	inputs.property "version", version
-	filesMatching("fabric.mod.json") {
-		expand "version": version
-	}
-}
+    java {
+        withSourcesJar()
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
 
-tasks.withType(JavaCompile).configureEach {
-	it.options.release = 17
-}
+    tasks.withType(Jar).configureEach {
+        if (name == 'sourcesJar') {
+            duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+        }
+    }
 
-tasks.withType(KotlinCompile).configureEach {
-	kotlinOptions {
-		jvmTarget = "17"
-	}
-}
-
-java {
-	withSourcesJar()
-	sourceCompatibility = JavaVersion.VERSION_17
-	targetCompatibility = JavaVersion.VERSION_17
+    tasks.withType(GenerateModuleMetadata) {
+        enabled = false
+    }
 }
